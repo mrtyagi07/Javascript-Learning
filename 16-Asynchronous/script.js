@@ -352,7 +352,7 @@ const getPosition = function () {
 //   whereAmI(pos.coords.latitude, pos.coords.longitude);
 // });
 
-const whereAmI = (lat, lang) => {
+/* const whereAmI = (lat, lang) => {
   getPosition()
     .then(pos => {
       const { latitude: lat, longitude: lang } = pos.coords;
@@ -379,3 +379,52 @@ const whereAmI = (lat, lang) => {
 };
 
 btn.addEventListener('click', whereAmI);
+ */
+
+//! Coding Challenge
+
+const imgContainer = document.querySelector('.images');
+
+const createImage = imgPath => {
+  return new Promise(function (resolve, reject) {
+    imgContainer.style.display = 'block';
+    const img = document.createElement('img');
+    img.src = imgPath;
+    img.alt = 'image';
+
+    img.addEventListener('load', function () {
+      imgContainer.appendChild(img);
+      resolve(img);
+    });
+
+    img.addEventListener('error', function () {
+      reject(new Error('Image not found'));
+    });
+  });
+};
+
+const wait = function (seconds) {
+  return new Promise(function (resolve) {
+    setTimeout(resolve, seconds * 10000);
+  });
+};
+let currentImg;
+createImage('./img/img-1.jpg')
+  .then(img => {
+    currentImg = img;
+    console.log('Imag 1 loaded');
+    return wait(2);
+  })
+  .then(() => {
+    currentImg.style.display = 'none;';
+    return createImage('./img/img-2.jpg');
+  })
+  .then(img => {
+    currentImg = img;
+    console.log('Image 2 loaded');
+    return wait(2);
+  })
+  .then(() => {
+    currentImg.style.display = 'none';
+  })
+  .catch(err => console.error(err));
