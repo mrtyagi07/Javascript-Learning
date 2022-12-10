@@ -144,7 +144,6 @@ getCountryAndNeighbour('bharat'); */
 
 const getJSON = function (url, errorMsg = 'Something went wrong') {
   return fetch(url).then(response => {
-    console.log(response);
     if (!response.ok) throw new Error(`${errorMsg} (${response.status})`);
     return response.json();
   });
@@ -336,16 +335,16 @@ wait(1)
 // Promise.resolve('abc').then(x => console.log(x));
 // Promise.reject('Problem').catch(x => console.error(x));
 
-const getPosition = function () {
-  return new Promise(function (resolve, reject) {
-    // navigator.geolocation.getCurrentPosition(
-    //   position => resolve(position),
-    //   err => reject(err)
-    // );
+// const getPosition = function () {
+//   return new Promise(function (resolve, reject) {
+//      navigator.geolocation.getCurrentPosition(
+//       position => resolve(position),
+//       err => reject(err)
+//      );
 
-    navigator.geolocation.getCurrentPosition(resolve, reject);
-  });
-};
+//     navigator.geolocation.getCurrentPosition(resolve, reject);
+//   });
+// };
 
 // getPosition().then(pos => {
 //   console.log(pos.coords);
@@ -383,7 +382,7 @@ btn.addEventListener('click', whereAmI);
 
 //! Coding Challenge
 
-const imgContainer = document.querySelector('.images');
+/* const imgContainer = document.querySelector('.images');
 
 const createImage = imgPath => {
   return new Promise(function (resolve, reject) {
@@ -427,4 +426,124 @@ createImage('./img/img-1.jpg')
   .then(() => {
     currentImg.style.display = 'none';
   })
+  .catch(err => console.error(err)); */
+
+//! using async await
+
+const getPosition = function () {
+  return new Promise(function (resolve, reject) {
+    navigator.geolocation.getCurrentPosition(resolve, reject);
+  });
+};
+
+const whereAmI = async function () {
+  try {
+    const pos = await getPosition();
+    const { latitude: lat, longitude: lang } = pos.coords;
+
+    //? Reverse geocoding
+    const resGeo = await fetch(
+      `https://geocode.xyz/${lat},${lang}?geoit=json&auth=281293109011954588424x52707`
+    );
+    if (!resGeo.ok) throw new Error('Problem getting location data');
+    const dataGeo = await resGeo.json();
+
+    const res = await fetch(
+      `https://restcountries.com/v2/name/${dataGeo.country}`
+    );
+    if (!res.ok) throw new Error('Problem getting Country');
+    const data = await res.json();
+
+    renderCountry(data[1]);
+
+    return `You are in ${dataGeo.city}, ${dataGeo.country}`;
+  } catch (err) {
+    console.error(`${err} ⛔`);
+    renderError(`Something went wrong ${err.message}`);
+
+    //Reject promise returned from async function
+    throw err;
+  }
+};
+
+//console.log('1: Will get location');
+// const city = whereAmI();
+// console.log(city);
+
+// whereAmI()
+//   .then(city => console.log(`2: ${city}`))
+//   .catch(err => console.error(`2: ${err.message} ⛔`))
+//   .finally(() => console.log('3: Finished getting location'));
+
+//use IIFE
+// (async function () {
+//   try {
+//     const city = await whereAmI();
+//     console.log(`2: ${city}`);
+//   } catch (err) {
+//     console.error(`2: ${err.message}`);
+//   }
+// })().finally(() => console.log('3: Finished getting location'));
+
+// ! Running promises in parallel
+const get3Countries = async function (c1, c2, c3) {
+  try {
+    // const [data1] = await getJSON(`https://restcountries.com/v2/name/${c1}`);
+    // const [data2] = await getJSON(`https://restcountries.com/v2/name/${c2}`);
+    // const [data3] = await getJSON(`https://restcountries.com/v2/name/${c3}`);
+
+    // console.log(data1.capital, data2.capital, data3.capital);
+
+    const data = await Promise.all([
+      getJSON(`https://restcountries.com/v2/name/${c1}`),
+      getJSON(`https://restcountries.com/v2/name/${c2}`),
+      getJSON(`https://restcountries.com/v2/name/${c3}`),
+    ]);
+    console.log(...data.map(d => d[0].capital));
+  } catch (err) {
+    console.log(err);
+  }
+};
+//get3Countries('portugal', 'canada', 'nepal');
+
+//Promise.race
+
+(async function () {
+  const res = await Promise.race([
+    getJSON(`https://restcountries.com/v2/name/america`),
+    getJSON(`https://restcountries.com/v2/name/egypt`),
+    getJSON(`https://restcountries.com/v2/name/mexico`),
+  ]);
+  console.log(res[0]);
+})();
+
+const timeout = function (sec) {
+  return new Promise(function (_, reject) {
+    setTimeout(function () {
+      reject(new Error('Request took too long!'));
+    }, sec * 1000);
+  });
+};
+
+Promise.race([
+  getJSON(`https://restcountries.com/v2/name/tanzania`),
+  timeout(1),
+])
+  .then(res => console.log(res[0]))
   .catch(err => console.error(err));
+
+//! Difference between all and all settled->
+
+//!Promise.allSetlled
+Promise.allSettled([
+  Promise.resolve('Success'),
+  Promise.reject('ERROR'),
+  Promise.resolve('Another success'),
+]).then(res => console.log(res));
+
+//Promise.any [ES2021]
+Promise.any([
+  Promise.reject('Success'),
+  Promise.reject('ERROR'),
+  Promise.resolve('Another success'),
+]).then(res => console.log(res));
